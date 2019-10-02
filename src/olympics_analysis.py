@@ -12,9 +12,11 @@ def male_female_participants():
     female_participants = gender_participants.loc[:, 'F']
 
     plot_figure = go.Figure(data=[
-        go.Scatter(x=male_participants.index, y=male_participants.values, name='Male Participants', mode='lines+markers',
+        go.Scatter(x=male_participants.index, y=male_participants.values, name='Male Participants',
+                   mode='lines+markers',
                    marker={'color': '#FFFFFF'}),
-        go.Scatter(x=female_participants.index, y=female_participants.values, name='Female Participants', mode='lines+markers',
+        go.Scatter(x=female_participants.index, y=female_participants.values, name='Female Participants',
+                   mode='lines+markers',
                    marker={'color': '#FFB300'})],
         layout=go.Layout(plot_bgcolor='#212121', paper_bgcolor='#212121'))
 
@@ -46,8 +48,9 @@ def country_medals():
     plt.plot(fig, filename='../plots/country_medals.html')
 
 
-def sports_highest_participants():
-    participants = data.groupby(by=['Year', 'Sport']).size().groupby(level=0).nlargest(5).droplevel(0).to_frame().reset_index()
+def highest_participants():
+    participants = data.groupby(by=['Year', 'Sport']).size().groupby(level=0).nlargest(5).droplevel(
+        0).to_frame().reset_index()
     years = ['Year ' + str(yr) for yr in participants['Year'].unique()]
 
     participants = participants.groupby(by='Year')
@@ -55,7 +58,8 @@ def sports_highest_participants():
     colors = ['#004D40', '#00897B', '#4DB6AC', '#B2DFDB', '#E0F2F1']
 
     fig = go.Figure(
-        [go.Barpolar(r=participants.nth(i)[0], name='', text=participants.nth(i)['Sport'], marker_color=colors[i], theta=years)
+        [go.Barpolar(r=participants.nth(i)[0], name='', text=participants.nth(i)['Sport'], marker_color=colors[i],
+                     theta=years)
          for i in range(4, -1, -1)],
         go.Layout(height=1000, title='Top 5 popular sports in Olympic History',
                   polar_bgcolor='#212121', paper_bgcolor='#212121',
@@ -64,3 +68,27 @@ def sports_highest_participants():
     )
 
     plt.plot(fig, filename='../plots/highest_participants.html')
+
+
+def medal_distribution_age():
+    medals_df = data.groupby('Age').agg('count')
+    medals_df = medals_df[medals_df['Medal'] != 0]
+    print(medals_df['Medal'])
+
+    fig = go.Figure(data=[go.Bar(
+        x=medals_df.index, y=medals_df['Medal'], name='Distribution of Medals')],
+        layout=go.Layout(plot_bgcolor='#212121', paper_bgcolor='#212121', xaxis=dict(showgrid=False),
+                         yaxis=dict(showgrid=False), font_color='#FFFFFF'))
+
+    plt.plot(fig, filename='../plots/medal_distribution_age.html')
+
+
+def medal_distribution_country():
+    medal_country = data[['NOC', 'Sport', "Medal"]].dropna(subset=['Medal'])
+    medal_country = medal_country.groupby(['Sport', 'NOC']).size().reset_index().sort_values(['Sport', 0],
+                                                                                             ascending=False)
+    medal_country = medal_country.groupby('Sport').head(5)
+    medal_country[0] = medal_country[0].astype('str')
+    medal_country = medal_country.groupby('Sport').apply(lambda s: ' | '.join(s['NOC'] + ' - ' + s[0])).reset_index()
+    medal_country.columns = ['Sport', 'Top Nations with Medal counts']
+    medal_country.to_csv('../plots/top_nations_medal_counts.csv', index=False, index_label=False)
